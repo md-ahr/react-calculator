@@ -1,33 +1,41 @@
-import { useState } from 'react';
+import { Component } from 'react';
 import Formula from './components/Formula';
 import Display from './components/Display';
 import Button from './components/Button';
 
-const isOperator = /[x/+‑]/,
-  endsWithOperator = /[x+‑/]$/,
-  endsWithNegativeSign = /\d[x/+‑]{1}‑$/;
+const isOperator = /[x/+‑]/;
+const endsWithOperator = /[x+‑/]$/;
+const endsWithNegativeSign = /\d[x/+‑]{1}‑$/;
 
-function App() {
+class App extends Component {
 
-  const [result, setResult] = useState({
-    currentVal: '0',
-    prevVal: '0',
-    formula: '',
-    evaluated: false
-  });
+  constructor(props) {
+    super(props);
+    this.state = {
+      currentVal: '0',
+      prevVal: '0',
+      formula: '',
+      evaluated: false
+    };
+    this.maxDigitWarning = this.maxDigitWarning.bind(this);
+    this.handleEvaluate = this.handleEvaluate.bind(this);
+    this.handleOperators = this.handleOperators.bind(this);
+    this.handleNumbers = this.handleNumbers.bind(this);
+    this.handleDecimal = this.handleDecimal.bind(this);
+    this.initialize = this.initialize.bind(this);
+  }
 
-  const maxDigitWarning = () => {
-    setResult({
-      ...result,
+  maxDigitWarning() {
+    this.setState({
       currentVal: 'Digit Limit Met',
-      prevVal: result.currentVal
+      prevVal: this.state.currentVal
     });
-    setTimeout(() => setResult({ ...result, currentVal: result.prevVal }), 1000);
-  };
+    setTimeout(() => this.setState({ currentVal: this.state.prevVal }), 1000);
+  }
 
-  const handleEvaluate = () => {
-    if (!result.currentVal.includes('Limit')) {
-      let expression = result.formula;
+  handleEvaluate() {
+    if (!this.state.currentVal.includes('Limit')) {
+      let expression = this.state.formula;
       while (endsWithOperator.test(expression)) {
         expression = expression.slice(0, -1);
       }
@@ -37,8 +45,7 @@ function App() {
         .replace('--', '+0+0+0+0+0+0+');
       // eslint-disable-next-line no-eval
       let answer = Math.round(1000000000000 * eval(expression)) / 1000000000000;
-      setResult({
-        ...result,
+      this.setState({
         currentVal: answer.toString(),
         formula:
           expression
@@ -55,114 +62,91 @@ function App() {
     }
   }
 
-  const handleOperators = (e) => {
-    if (!result.currentVal.includes('Limit')) {
+  handleOperators(e) {
+    if (!this.state.currentVal.includes('Limit')) {
       const value = e.target.value;
-      const { formula, prevVal, evaluated } = result;
-      setResult({ ...result, currentVal: value, evaluated: false });
+      const { formula, prevVal, evaluated } = this.state;
+      this.setState({ currentVal: value, evaluated: false });
       if (evaluated) {
-        setResult({ ...result, formula: prevVal + value });
+        this.setState({ formula: prevVal + value });
       } else if (!endsWithOperator.test(formula)) {
-        setResult({
-          ...result,
-          prevVal: formula,
-          formula: formula + value
-        });
+        this.setState({  prevVal: formula, formula: formula + value });
       } else if (!endsWithNegativeSign.test(formula)) {
-        setResult({
-          ...result,
-          formula: (endsWithNegativeSign.test(formula + value) ? formula : prevVal) + value
-        });
+        this.setState({ formula: (endsWithNegativeSign.test(formula + value) ? formula : prevVal) + value });
       } else if (value !== '‑') {
-        setResult({
-          ...result,
-          formula: prevVal + value
-        });
+        this.setState({ formula: prevVal + value });
       }
     }
-  };
+  }
 
-  const handleNumbers = (e) => {
-    if (!result.currentVal.includes('Limit')) {
+  handleNumbers(e) {
+    if (!this.state.currentVal.includes('Limit')) {
       const value = e.target.value;
-      setResult({ ...result, evaluated: false });
-      if (result.currentVal.length > 16) {
-        maxDigitWarning();
-      } else if (result.evaluated) {
-        setResult({
-          ...result,
-          currentVal: value,
-          formula: value !== '0' ? value : ''
-        });
+      this.setState({ evaluated: false });
+      if (this.state.currentVal.length > 16) {
+        this.maxDigitWarning();
+      } else if (this.state.evaluated) {
+        this.setState({ currentVal: value, formula: value !== '0' ? value : '' });
       } else {
-        setResult({
-          ...result,
+        this.setState({
           currentVal:
-            result.currentVal === '0' || isOperator.test(result.currentVal)
+            this.state.currentVal === '0' || isOperator.test(this.state.currentVal)
               ? value
-              : result.currentVal + value,
+              : this.state.currentVal + value,
           formula:
-            result.currentVal === '0' && value === '0'
-              ? result.formula === ''
+            this.state.currentVal === '0' && value === '0'
+              ? this.state.formula === ''
                 ? value
-                : result.formula
-              : /([^.0-9]0|^0)$/.test(result.formula)
-              ? result.formula.slice(0, -1) + value
-              : result.formula + value
+                : this.state.formula
+              : /([^.0-9]0|^0)$/.test(this.state.formula)
+              ? this.state.formula.slice(0, -1) + value
+              : this.state.formula + value
         });
       }
     }
-  };
+  }
 
-  const handleDecimal = () => {
-    if (result.evaluated === true) {
-      setResult({
-        ...result,
-        currentVal: '0.',
-        formula: '0.',
-        evaluated: false
-      });
-    } else if (!result.currentVal.includes('.') && !result.currentVal.includes('Limit')) {
-      setResult({ ...result, evaluated: false });
-      if (result.currentVal.length > 16) {
-        maxDigitWarning();
-      } else if (endsWithOperator.test(result.formula) || (result.currentVal === '0' && result.formula === '')) {
-        setResult({
-          ...result,
-          currentVal: '0.',
-          formula: result.formula + '0.'
-        });
+  handleDecimal() {
+    if (this.state.evaluated === true) {
+      this.setState({ currentVal: '0.', formula: '0.', evaluated: false });
+    } else if (!this.state.currentVal.includes('.') && !this.state.currentVal.includes('Limit')) {
+      this.setState({ evaluated: false });
+      if (this.state.currentVal.length > 16) {
+        this.maxDigitWarning();
+      } else if (endsWithOperator.test(this.state.formula) || (this.state.currentVal === '0' && this.state.formula === '')) {
+        this.setState({ currentVal: '0.', formula: this.state.formula + '0.' });
       } else {
-        setResult({
-          ...result,
-          currentVal: result.formula.match(/(-?\d+\.?\d*)$/)[0] + '.',
-          formula: result.formula + '.'
-        });
+        this.setState({ currentVal: this.state.formula.match(/(-?\d+\.?\d*)$/)[0] + '.', formula: this.state.formula + '.' });
       }
     }
-  };
+  }
 
-  const initialize = () => {
-    setResult({
-      ...result,
+  initialize () {
+    this.setState({
       currentVal: '0',
       prevVal: '0',
       formula: '',
       evaluated: false
     });
-  };
+  }
 
-  return (
-    <div className="container-fluid">
-      <div className="card calculator-container">
-        <Formula formula={result.formula.replace(/x/g, '⋅')} />
-        <Display currentVal={result.currentVal} />
-        <div className="button-grid">
-          <Button initialize={initialize} handleOperators={handleOperators} handleNumbers={handleNumbers} handleEvaluate={handleEvaluate} handleDecimal={handleDecimal} />
-        </div>
-      </div>
-    </div>
-  );
+  render () {
+
+    const { formula, currentVal} = this.state;
+
+    return (
+      <div className="container-fluid">
+       <div className="card calculator-container">
+         <Formula formula={formula.replace(/x/g, '⋅')} />
+         <Display currentVal={currentVal} />
+         <div className="button-grid">
+           <Button initialize={this.initialize} handleOperators={this.handleOperators} handleNumbers={this.handleNumbers} handleEvaluate={this.handleEvaluate} handleDecimal={this.handleDecimal} />
+         </div>
+       </div>
+     </div>
+    );
+  }
+
 }
 
 export default App;
